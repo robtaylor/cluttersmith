@@ -199,7 +199,6 @@ main (gint    argc,
   gtk_widget_show_all (window);
 
   cluttersmith_initialize_for_stage (stage);
-  load_project ();
   g_timeout_add (10000, cs_save_timeout, NULL); /* auto-save */
 
   gtk_main ();
