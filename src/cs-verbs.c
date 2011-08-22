@@ -66,8 +66,8 @@ static void each_duplicate (ClutterActor *actor,
 void cs_duplicate (ClutterActor *ignored)
 {
   GList *n, *new = NULL;
-  cs_selected_foreach (G_CALLBACK (each_duplicate), &new);
-  cs_selected_clear ();
+  cs_selection_foreach (GET_SELECTION(), G_CALLBACK (each_duplicate), &new);
+  cs_selection_clear (GET_SELECTION());
   for (n=new; n; n=n->next)
     cs_selected_add (n->data);
   g_list_free (new);
@@ -246,15 +246,6 @@ void cs_quit (ClutterActor *ignored)
 #else
   gtk_main_quit ();
 #endif
-}
-
-/* This is the side effect tiny one, the other should have 
- * a more detailed name about its side effect
- */
-static void each_add_to_list (ClutterActor *actor,
-                               gpointer      string)
-{
-  g_string_append_printf (string, "$(\"%s\"),", cs_get_id (actor));
 }
 
 void cs_select_none (ClutterActor *ignored)

@@ -40,6 +40,12 @@
 #ifndef CS_H
 #define CS_H
 
+#include "cs-context.h"
+#include "cs-util.h"
+#include "cs-animation-editing.h"
+#include "cs-history.h"
+
+
 /* #define EDIT_SELF  */
 
 typedef enum RunMode {
@@ -48,11 +54,6 @@ typedef enum RunMode {
   CS_UI_MODE_EDIT    = 2,
   CS_UI_MODE_CHROME  = CS_UI_MODE_UI|CS_UI_MODE_EDIT,
 } RunMode;
-
-#include "cs-context.h"
-#include "cs-util.h"
-#include "cs-animation-editing.h"
-#include "cs-history.h"
 
 void
 props_populate (ClutterActor *container,
@@ -85,28 +86,8 @@ void cs_dirtied (void);
 
 /* actor-editing: */
 
-/* selection */
-
-GList   *cs_selected_get_list  (void);
-gint     cs_selected_count     (void);
-gboolean cs_selected_has_actor (ClutterActor *actor);
-void     cs_selected_clear     (void);
-void     cs_selected_init      (void);
-void     cs_selected_add       (ClutterActor *actor);
-void     cs_selected_remove    (ClutterActor *actor);
-void     cs_selected_foreach   (GCallback     cb,
-                                          gpointer      data);
 gboolean cs_save_timeout       (gpointer      data);
-gpointer cs_selected_match     (GCallback     match_fun,
-                                          gpointer      data);
-ClutterActor *cs_selected_get_any (void);
-
-gboolean cs_selected_lasso_start (ClutterActor  *actor,
-                                 ClutterEvent  *event);
-
-void cs_selected_paint (void);
 void cs_move_snap_paint (void);
-extern ClutterActor      *lasso; /* XXX: global */
 /*****/
 void cs_actor_editors_add (GType type,
                            void (*editing_start) (ClutterActor *edited_actor),
@@ -189,30 +170,5 @@ extern gint cs_set_keys_freeze; /* XXX: global! */
 gchar *cs_json_escape_string (const gchar *in);
 
 void cs_callbacks_populate (ClutterActor *actor);
-
-/* these are defined here to allow sharing the boilerplate 
- * among different .c files
- */
-#define SELECT_ACTION_PRE2() \
-  g_string_append_printf (undo, "var list=[");\
-  cs_selected_foreach (G_CALLBACK (each_add_to_list), undo);\
-  g_string_append_printf (undo, "];\n"\
-                          "CS.selected_clear();\n"\
-                          "for (x in list) CS.selected_add (list[x]);\n");
-#define SELECT_ACTION_PRE() \
-  GString *undo = g_string_new ("");\
-  GString *redo = g_string_new ("");\
-  SELECT_ACTION_PRE2();
-#define SELECT_ACTION_POST(action_name) \
-  g_string_append_printf (redo, "var list=[");\
-  cs_selected_foreach (G_CALLBACK (each_add_to_list), redo);\
-  g_string_append_printf (redo, "];\n"\
-                          "CS.selected_clear();\n"\
-                          "for (x in list) CS.selected_add (list[x]);\n");\
-  if (!g_str_equal (redo->str, undo->str))\
-    cs_history_add (action_name, redo->str, undo->str);\
-  g_string_free (undo, TRUE);\
-  g_string_free (redo, TRUE);\
-  undo = redo = NULL;
 
 #endif

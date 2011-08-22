@@ -358,7 +358,7 @@ void cs_move_snap_paint (void)
         }
     }
 
-  if (cs_selected_count ()==0 && lasso == NULL)
+  if (cs_selected_count ()==0 && cs->lasso == NULL)
     return;
 
   if (cs_selected_count ()==1)

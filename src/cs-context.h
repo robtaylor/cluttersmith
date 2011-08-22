@@ -43,6 +43,7 @@
 #include <clutter/clutter.h>
 #include <mx/mx.h>
 #include <glib-object.h>
+#include "cs-selection.h"
 
 G_BEGIN_DECLS
 
@@ -87,6 +88,8 @@ struct _CSContext
   ClutterState  *current_state_machine;
   const gchar   *current_source_state;  /* interned string */
   const gchar   *current_target_state;  /* interned string */
+
+  CSSelection current_selection;
 
   ClutterAnimator *current_animator; /* (if any) */
   /* XXX: add currently edited state machine */

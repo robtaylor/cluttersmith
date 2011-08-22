@@ -1061,7 +1061,7 @@ gboolean update_overlay_positions (gpointer data)
   if (cs->current_animator)
     animator_editor_update_handles ();
 
-  if (cs_selected_count ()==0 && lasso == NULL)
+  if (cs_selected_count ()==0 && cs->lasso == NULL)
     {
       clutter_actor_hide (cs->move_handle);
       clutter_actor_hide (cs->depth_handle);
