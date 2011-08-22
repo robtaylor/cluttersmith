@@ -1090,7 +1090,7 @@ void animator_editor_update_handles (void)
   /* Update positions of drag handles */
   if (cs->current_animator)
     {
-      ClutterActor *actor = cs_selected_get_any ();
+      ClutterActor *actor = cs_selection_get_any (cs->selection);
       gint i = 0;
       if (actor)
         {
@@ -1456,7 +1456,7 @@ void cs_animator_editor_stage_paint (void)
 {
   if (cs->current_animator)
     {
-      ClutterActor *actor = cs_selected_get_any ();
+      ClutterActor *actor = cs_selection_get_any (cs->selection);
       if (actor)
         {
           gfloat progress;

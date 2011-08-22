@@ -64,7 +64,7 @@ selection_to_anchor_commands (GString *string)
 {
   GList *s, *selected;
 
-  selected = cs_selected_get_list ();
+  selected = cs_selection_get_list (cs->selection);
   for (s = selected; s; s = s->next)
     {
       ClutterActor *actor = s->data;
@@ -93,7 +93,7 @@ manipulate_anchor_capture (ClutterActor *stage,
     {
       case CLUTTER_MOTION:
         {
-          ClutterActor *actor = cs_selected_get_any();
+          ClutterActor *actor = cs_selection_get_any(cs->selection);
           /* resize is semi bust for more than one actor */
           gfloat ex, ey;
           clutter_actor_transform_stage_point (actor, event->motion.x, event->motion.y,
@@ -136,7 +136,7 @@ manipulate_anchor_capture (ClutterActor *stage,
 gboolean cs_anchor_start (ClutterActor  *actor,
                           ClutterEvent  *event)
 {
-  ClutterActor *first_actor = cs_selected_get_any();
+  ClutterActor *first_actor = cs_selection_get_any(cs->selection);
   start_x = manipulate_x = event->button.x;
   start_y = manipulate_y = event->button.y;
 

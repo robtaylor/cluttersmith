@@ -57,17 +57,9 @@ gboolean manipulate_pan_start (ClutterEvent  *event);
 ClutterActor        *cs_siblings_pick_next (ClutterActor *sibling,
                                             gfloat        x,
                                             gfloat        y);
-static ClutterActor * cs_selection_pick    (gfloat        x,
-                                            gfloat        y);
 ClutterActor        *cs_children_pick      (ClutterActor *actor,
                                             gfloat        x,
                                             gfloat        y);
-
-static void each_add_to_list (ClutterActor *actor,
-                               gpointer      string)
-{
-  g_string_append_printf (string, "$(\"%s\"),", cs_get_id (actor));
-}
 
 gint cs_drill_down = 0; /* if 2, then we're drilling down */
 
@@ -155,7 +147,7 @@ cs_stage_capture (ClutterActor *actor,
                        if (name && g_str_has_prefix (name, "link="))
                          {
                            cluttersmith_load_scene (name+5);
-                           cs_selected_clear ();
+                           cs_selection_clear (cs->selection);
                            return TRUE;
                          }
                        hit = clutter_actor_get_parent (hit);
@@ -217,20 +209,20 @@ cs_stage_capture (ClutterActor *actor,
             }
 
 drill_down:
-          hit = cs_selection_pick (x, y);
+          hit = cs_selection_pick (cs->selection, x, y);
 
           if (hit) /* pressed part of initial selection */
             {
               if (clutter_event_get_button (event) == 3)
                 {
-                  if (cs_selected_count ()>1)
+                  if (cs_selection_count (cs->selection)>1)
                     {
                       selection_menu (x,y);
                       return FALSE;
                     }
                   else
                     {
-                      object_menu (cs_selected_get_any (), x,y);
+                      object_menu (cs_selection_get_any (cs->selection), x,y);
                       return FALSE;
                     }
                 }
@@ -242,7 +234,7 @@ drill_down:
                   if (name && g_str_has_prefix (name, "link="))
                     {
                       cluttersmith_load_scene (name+5);
-                      cs_selected_clear ();
+                      cs_selection_clear (cs->selection);
                       return TRUE;
                     }
 
@@ -253,31 +245,31 @@ drill_down:
                 {
                    if (event->button.modifier_state & CLUTTER_CONTROL_MASK)
                      {
-                       if (cs_selected_has_actor (hit))
+                       if (cs_selection_has_actor (cs->selection, hit))
                          {
-                           SELECT_ACTION_PRE();
-                           cs_selected_remove (hit);
-                           SELECT_ACTION_POST("select-remove");
+                           SELECT_ACTION_PRE(cs->selection);
+                           cs_selection_remove (cs->selection, hit);
+                           SELECT_ACTION_POST(cs->selection, "select-remove");
                          }
                      }
                    if (event->button.modifier_state & CLUTTER_MOD1_MASK)
                      {
-                       if (cs_selected_has_actor (hit))
+                       if (cs_selection_has_actor (cs->selection, hit))
                          {
                            ClutterActor *next = cs_siblings_pick_next (hit, x, y);
-                           SELECT_ACTION_PRE();
-                           cs_selected_remove (hit);
-                           cs_selected_add (next);
-                           SELECT_ACTION_POST ("select foo");
+                           SELECT_ACTION_PRE (cs->selection);
+                           cs_selection_remove (cs->selection, hit);
+                           cs_selection_add (cs->selection, next);
+                           SELECT_ACTION_POST (cs->selection, "select foo");
                          }
                      }
 
                    if (cs_drill_down == 2 && CLUTTER_IS_CONTAINER (hit))
                      {
-                       SELECT_ACTION_PRE();
-                       cs_selected_clear ();
+                       SELECT_ACTION_PRE(cs->selection);
+                       cs_selection_clear (cs->selection);
                        cs_set_current_container (hit);
-                       SELECT_ACTION_POST("select-dig-deeper");
+                       SELECT_ACTION_POST(cs->selection, "select-dig-deeper");
                        cs_drill_down = 0;
                        goto drill_down;
                      }
@@ -314,7 +306,7 @@ drill_down:
 
               if (hit)
                 {
-                  SELECT_ACTION_PRE();
+                  SELECT_ACTION_PRE(cs->selection);
                   if (!((clutter_event_get_state (event) & CLUTTER_CONTROL_MASK) ||
                         (clutter_event_get_state (event) & CLUTTER_SHIFT_MASK)))
                     {
@@ -328,7 +320,7 @@ drill_down:
                           return FALSE;
                         }
 #endif
-                      cs_selected_clear ();
+                      cs_selection_clear (cs->selection);
                       if (stage_child)
                         {
                           cs_set_current_container (cs->fake_stage);
@@ -344,26 +336,26 @@ drill_down:
 
                   if (event->button.modifier_state & CLUTTER_CONTROL_MASK)
                     {
-                      if (cs_selected_has_actor (hit))
+                      if (cs_selection_has_actor (cs->selection, hit))
                         {
-                          cs_selected_remove (hit);
+                          cs_selection_remove (cs->selection, hit);
                         }
                       else
                         {
-                          cs_selected_add (hit);
+                          cs_selection_add (cs->selection,hit);
                         }
                     }
                   else
                     {
-                      cs_selected_add (hit);
+                      cs_selection_add (cs->selection, hit);
                     }
                   cs_drill_down = 1; /* we might be starting to drill down */
                   cs_move_start (cs->parasite_root, event);
-                  SELECT_ACTION_POST("select");
+                  SELECT_ACTION_POST(cs->selection, "select");
                 }
               else
                 {
-                  cs_selected_lasso_start (cs->parasite_root, event);
+                  cs_selection_lasso_start (cs->selection, cs->parasite_root, event);
                 }
             }
         }
@@ -381,57 +373,7 @@ drill_down:
 
 
 
-static gboolean is_point_in_actor (ClutterActor *actor, gfloat x, gfloat y)
-{
-  gboolean ret = FALSE;
-  ClutterVertex verts[4];
-  cairo_surface_t *surface;
-  cairo_t *cr;
 
-  clutter_actor_get_abs_allocation_vertices (actor,
-                                             verts);
-
-  surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, 1, 1);
-  cr = cairo_create (surface);
-
-  cairo_move_to (cr, verts[0].x, verts[0].y);
-  cairo_line_to (cr, verts[1].x, verts[1].y);
-  cairo_line_to (cr, verts[3].x, verts[3].y);
-  cairo_line_to (cr, verts[2].x, verts[2].y);
-
-  if (cairo_in_fill (cr, x, y))
-    ret = TRUE;
-
-  cairo_destroy (cr);
-  cairo_surface_destroy (surface);
-
-  return ret;
-}
-
-static gpointer
-is_in_actor (ClutterActor *actor,
-             gfloat       *args)
-{
-  gfloat x=args[0]; /* convert pointed to argument list into variables */
-  gfloat y=args[1];
-
-  if (actor == clutter_actor_get_stage (actor))
-    return NULL;
-
-  if (is_point_in_actor (actor, x, y))
-    {
-      return actor;
-    }
-  return NULL;
-}
-
-static ClutterActor *
-cs_selection_pick (gfloat x,
-                   gfloat y)
-{
-  gfloat data[2]={x,y}; 
-  return cs_selected_match (G_CALLBACK (is_in_actor), data);
-}
 
 ClutterActor *cs_siblings_pick (ClutterActor *actor, gfloat x, gfloat y)
 {
@@ -592,12 +534,12 @@ gboolean cs_edit_actor_start (ClutterActor *actor)
   if (name && g_str_has_prefix (name, "link="))
     {
       cluttersmith_load_scene (name+5);
-      cs_selected_clear ();
+      cs_selection_clear (cs->selection);
       return TRUE;
     }
   if (CLUTTER_IS_CONTAINER (actor))
      {
-       cs_selected_clear ();
+       cs_selection_clear (cs->selection);
        cs_set_current_container (actor);
        return TRUE;
      }

@@ -99,6 +99,8 @@ cs_context_dispose (GObject *object)
 static void
 cs_context_finalize (GObject *object)
 {
+  CSContext *context = (CSContext*) object;
+  g_slice_free(CSSelection, context->selection); /*TODO, real free fn*/ 
   G_OBJECT_CLASS (cs_context_parent_class)->finalize (object);
 }
 
@@ -146,6 +148,7 @@ static void
 cs_context_init (CSContext *self)
 {
   self->priv = CONTEXT_PRIVATE (self);
+  self->selection = g_slice_new0(CSSelection);
 }
 
 CSContext *
@@ -439,7 +442,7 @@ static void page_run_start (void)
                clutter_text_set_text (CLUTTER_TEXT(cs->dialog_editor_error),
                                       error->message);
               else
-                g_print (error->message);
+                g_print ("%s", error->message);
                g_idle_add (return_to_ui, NULL);
             }
           else
@@ -494,7 +497,7 @@ void cs_set_ui_mode (guint ui_mode)
     }
 
   cs->ui_mode = ui_mode;
-  cs_selected_clear ();
+  cs_selection_clear (cs->selection);
   cs_sync_chrome ();
 }
 
@@ -609,7 +612,7 @@ void cs_context_set_scene (CSContext   *context,
 
   cs_load ();
   cs_sync_chrome_idle (NULL);
-  cs_selected_clear ();
+  cs_selection_clear (cs->selection);
 
   if (!(context->ui_mode & CS_UI_MODE_EDIT))
     page_run_start ();
@@ -702,7 +705,7 @@ runtime_capture (ClutterActor *actor,
                        if (name && g_str_has_prefix (name, "link="))
                          {
                            cluttersmith_load_scene (name+5);
-                           cs_selected_clear ();
+                           cs_selection_clear (cs->selection);
                            return TRUE;
                          }
                        hit = clutter_actor_get_parent (hit);
@@ -1060,8 +1063,8 @@ gboolean update_overlay_positions (gpointer data)
 
   if (cs->current_animator)
     animator_editor_update_handles ();
-
-  if (cs_selected_count ()==0 && cs->lasso == NULL)
+  /*XXX: this is ugly, fix*/
+  if (cs_selection_count (cs->selection)==0 && cs->selection->lasso == NULL)
     {
       clutter_actor_hide (cs->move_handle);
       clutter_actor_hide (cs->depth_handle);
@@ -1092,7 +1095,7 @@ gboolean update_overlay_positions (gpointer data)
   clutter_actor_show (cs->resize_handle);
   clutter_actor_show (cs->anchor_handle);
 
-  actor = cs_selected_get_any ();
+  actor = cs_selection_get_any (cs->selection);
 
 
   if (actor)
@@ -1123,7 +1126,7 @@ gboolean update_overlay_positions (gpointer data)
   min_y = 65536;
   max_x = 0;
   max_y = 0;
-  cs_selected_foreach (G_CALLBACK (find_extent), data);
+  cs_selection_foreach (cs->selection, G_CALLBACK (find_extent), data);
   clutter_actor_set_position (cs->move_handle, (max_x+min_x)/2, (max_y+min_y)/2);
   clutter_actor_set_position (cs->depth_handle, (max_x+min_x)/2 + 20, (max_y+min_y)/2);
 
@@ -1136,11 +1139,9 @@ cs_overlay_paint (ClutterActor *stage,
                   gpointer      user_data)
 {
   cs_move_snap_paint ();
-  cs_selected_paint ();
+  cs_selection_paint (cs->selection);
   cs_animator_editor_stage_paint ();
 }
-
-void init_multi_select (void);
 
 /* The handler that might trigger the playback mode context menu */
 static gboolean playback_context (ClutterActor *actor,
@@ -1193,7 +1194,6 @@ gboolean cluttersmith_initialize_for_stage (gpointer stage)
                           G_CALLBACK (cs_stage_capture), NULL);
   g_signal_connect (clutter_actor_get_stage (actor), "button-press-event",
                     G_CALLBACK (playback_context), NULL);
-  init_multi_select ();
   cs_edit_text_init ();
 
 

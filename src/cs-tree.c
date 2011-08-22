@@ -186,8 +186,8 @@ tree_item_capture (ClutterActor *stage, ClutterEvent *event, gpointer data)
               }
             if (dragged_actor)
               {
-                cs_selected_clear ();
-                cs_selected_add (dragged_actor);
+                cs_selection_clear (cs->selection);
+                cs_selection_add (cs->selection, dragged_actor);
               }
           }
         dropped_on_target = NULL;
@@ -226,8 +226,8 @@ static gboolean tree_item_press (ClutterActor  *actor,
 
 static gboolean cs_set_active_event (ClutterActor *button, ClutterEvent *event, ClutterActor *item)
 {
-  cs_selected_clear ();
-  cs_selected_add (item);
+  cs_selection_clear (cs->selection);
+  cs_selection_add (cs->selection, item);
   return TRUE;
 }
 

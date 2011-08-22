@@ -61,7 +61,7 @@ selection_to_rotz_commands (GString *string)
 {
   GList *s, *selected;
 
-  selected = cs_selected_get_list ();
+  selected = cs_selection_get_list (cs->selection);
   for (s = selected; s; s = s->next)
     {
       ClutterActor *actor = s->data;
@@ -82,7 +82,7 @@ manipulate_rotate_z_capture (ClutterActor *stage,
     {
       case CLUTTER_MOTION:
         {
-          ClutterActor *actor = cs_selected_get_any();
+          ClutterActor *actor = cs_selection_get_any(cs->selection);
           gfloat ex, ey;
           gfloat rot;
           rot = clutter_actor_get_rotation (actor, CLUTTER_Z_AXIS, NULL, NULL, NULL);
@@ -138,7 +138,7 @@ selection_to_rotx_commands (GString *string)
 {
   GList *s, *selected;
 
-  selected = cs_selected_get_list ();
+  selected = cs_selection_get_list (cs->selection);
   for (s = selected; s; s = s->next)
     {
       ClutterActor *actor = s->data;
@@ -159,7 +159,7 @@ manipulate_rotate_x_capture (ClutterActor *stage,
     {
       case CLUTTER_MOTION:
         {
-          ClutterActor *actor = cs_selected_get_any();
+          ClutterActor *actor = cs_selection_get_any(cs->selection);
           gfloat ex, ey;
           gfloat rot;
           rot = clutter_actor_get_rotation (actor, CLUTTER_X_AXIS, NULL, NULL, NULL);
@@ -217,7 +217,7 @@ selection_to_roty_commands (GString *string)
 {
   GList *s, *selected;
 
-  selected = cs_selected_get_list ();
+  selected = cs_selection_get_list (cs->selection);
   for (s = selected; s; s = s->next)
     {
       ClutterActor *actor = s->data;
@@ -238,7 +238,7 @@ manipulate_rotate_y_capture (ClutterActor *stage,
     {
       case CLUTTER_MOTION:
         {
-          ClutterActor *actor = cs_selected_get_any();
+          ClutterActor *actor = cs_selection_get_any(cs->selection);
           gfloat ex, ey;
           gfloat rot;
           rot = clutter_actor_get_rotation (actor, CLUTTER_Y_AXIS, NULL, NULL, NULL);

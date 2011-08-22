@@ -1547,3 +1547,53 @@ cs_actor_move_anchor_point (ClutterActor *self,
     g_object_thaw_notify (G_OBJECT (self));
   }
 }
+
+gpointer
+is_in_actor (ClutterActor *actor,
+             gfloat       *args)
+{
+  gfloat x=args[0]; /* convert pointed to argument list into variables */
+  gfloat y=args[1];
+
+  if (actor == clutter_actor_get_stage (actor))
+    return NULL;
+
+  if (is_point_in_actor (actor, x, y))
+    {
+      return actor;
+    }
+  return NULL;
+}
+
+
+void add_actor_to_js_list (ClutterActor *actor, GString *string)
+{
+  g_string_append_printf (string, "$(\"%s\"),", cs_get_id (actor));
+}
+
+gboolean is_point_in_actor (ClutterActor *actor, gfloat x, gfloat y)
+{
+  gboolean ret = FALSE;
+  ClutterVertex verts[4];
+  cairo_surface_t *surface;
+  cairo_t *cr;
+
+  clutter_actor_get_abs_allocation_vertices (actor,
+                                             verts);
+
+  surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, 1, 1);
+  cr = cairo_create (surface);
+
+  cairo_move_to (cr, verts[0].x, verts[0].y);
+  cairo_line_to (cr, verts[1].x, verts[1].y);
+  cairo_line_to (cr, verts[3].x, verts[3].y);
+  cairo_line_to (cr, verts[2].x, verts[2].y);
+
+  if (cairo_in_fill (cr, x, y))
+    ret = TRUE;
+
+  cairo_destroy (cr);
+  cairo_surface_destroy (surface);
+
+  return ret;
+}

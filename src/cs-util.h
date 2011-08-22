@@ -169,5 +169,10 @@ cs_actor_move_anchor_point (ClutterActor *self,
                             gfloat        anchor_x,
                             gfloat        anchor_y);
 
+gpointer is_in_actor (ClutterActor *actor, gfloat *args);
+
+void add_actor_to_js_list (ClutterActor *actor, GString *string);
+
+gboolean is_point_in_actor (ClutterActor *actor, gfloat x, gfloat y);
 
 #endif

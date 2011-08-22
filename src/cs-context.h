@@ -89,7 +89,7 @@ struct _CSContext
   const gchar   *current_source_state;  /* interned string */
   const gchar   *current_target_state;  /* interned string */
 
-  CSSelection current_selection;
+  CSSelection   *selection;
 
   ClutterAnimator *current_animator; /* (if any) */
   /* XXX: add currently edited state machine */

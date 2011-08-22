@@ -70,9 +70,9 @@ drag_data_received (GtkWidget          *widget,
                                          y - clutter_actor_get_y (cs->fake_stage));
       x += 10;
       y += 10;
-      cs_selected_clear ();
+      cs_selection_clear (cs->selection);
       cs_actor_make_id_unique (actor, g_file_get_basename (copy));
-      cs_selected_add (actor);
+      cs_selection_add (cs->selection, actor);
 
       cs_dirtied ();
 skip: 

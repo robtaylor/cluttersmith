@@ -44,7 +44,7 @@ property-editors.c
 
 
 libcluttersmith_la_LIBADD = $(DEPS_LIBS)
-libcluttersmith_la_LDFLAGS = -export-dynamic
+libcluttersmith_la_LDFLAGS = -export-dynamic -export-symbols-regex "^cs_.*"
 
 cluttersmith_LDADD  = libcluttersmith.la $(DEPS_LIBS)
 cluttersmith_LDFLAGS = -export-dynamic

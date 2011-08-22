@@ -66,10 +66,10 @@ static void each_duplicate (ClutterActor *actor,
 void cs_duplicate (ClutterActor *ignored)
 {
   GList *n, *new = NULL;
-  cs_selection_foreach (GET_SELECTION(), G_CALLBACK (each_duplicate), &new);
-  cs_selection_clear (GET_SELECTION());
+  cs_selection_foreach (cs->selection, G_CALLBACK (each_duplicate), &new);
+  cs_selection_clear (cs->selection);
   for (n=new; n; n=n->next)
-    cs_selected_add (n->data);
+    cs_selection_add (cs->selection, n->data);
   g_list_free (new);
   cs_dirtied ();
 }
@@ -103,20 +103,20 @@ void cs_remove (ClutterActor *ignored)
         return;
 
       cs_set_active (NULL);
-      cs_selected_foreach (G_CALLBACK (each_remove), NULL);
+      cs_selection_foreach (cs->selection, G_CALLBACK (each_remove), NULL);
       cs_dirtied ();
-      cs_selected_clear ();
+      cs_selection_clear (cs->selection);
       {
         GList *children;
         children = clutter_container_get_children (CLUTTER_CONTAINER (parent));
         if (children)
           {
-            cs_selected_add (children->data);
+            cs_selection_add (cs->selection, children->data);
             g_list_free (children);
           }
         else
           {
-            cs_selected_add (parent);
+            cs_selection_add (cs->selection, parent);
           }
       }
     }
@@ -149,10 +149,10 @@ void cs_cut (ClutterActor *ignored)
     {
       ClutterActor *parent = clutter_actor_get_parent (active);
       cs_set_active (NULL);
-      cs_selected_foreach (G_CALLBACK (each_cut), NULL);
+      cs_selection_foreach (cs->selection, G_CALLBACK (each_cut), NULL);
       cs_dirtied ();
-      cs_selected_clear ();
-      cs_selected_add (parent);
+      cs_selection_clear (cs->selection);
+      cs_selection_add (cs->selection, parent);
     }
 }
 
@@ -170,7 +170,7 @@ static void each_copy (ClutterActor *actor)
 void cs_copy (ClutterActor *ignored)
 {
   empty_clipboard ();
-  cs_selected_foreach (G_CALLBACK (each_copy), NULL);
+  cs_selection_foreach (cs->selection, G_CALLBACK (each_copy), NULL);
   cs_dirtied ();
 }
 
@@ -194,10 +194,10 @@ void cs_paste (ClutterActor *ignored)
             clutter_actor_set_position (new_actor, x, y);
           }
         }
-      cs_selected_clear ();
+      cs_selection_clear (cs->selection);
       if (new_actor)
         {
-          cs_selected_add (new_actor);
+          cs_selection_add (cs->selection, new_actor);
         }
     }
   cs_dirtied ();
@@ -205,26 +205,26 @@ void cs_paste (ClutterActor *ignored)
 
 void cs_raise (ClutterActor *ignored)
 {
-  cs_selected_foreach (G_CALLBACK (clutter_actor_raise), NULL);
+  cs_selection_foreach (cs->selection, G_CALLBACK (clutter_actor_raise), NULL);
   cs_dirtied ();
 }
 
 void cs_lower (ClutterActor *ignored)
 {
-  cs_selected_foreach (G_CALLBACK (clutter_actor_lower), NULL);
+  cs_selection_foreach (cs->selection, G_CALLBACK (clutter_actor_lower), NULL);
   cs_dirtied ();
 }
 
 
 void cs_raise_top (ClutterActor *ignored)
 {
-  cs_selected_foreach (G_CALLBACK (clutter_actor_raise_top), NULL);
+  cs_selection_foreach (cs->selection, G_CALLBACK (clutter_actor_raise_top), NULL);
   cs_dirtied ();
 }
 
 void cs_lower_bottom (ClutterActor *ignored)
 {
-  cs_selected_foreach (G_CALLBACK (clutter_actor_lower_bottom), NULL);
+  cs_selection_foreach (cs->selection, G_CALLBACK (clutter_actor_lower_bottom), NULL);
   cs_dirtied ();
 }
 
@@ -235,7 +235,7 @@ static void each_reset_size (ClutterActor *actor)
 
 void cs_reset_size (ClutterActor *ignored)
 {
-  cs_selected_foreach (G_CALLBACK (each_reset_size), NULL);
+  cs_selection_foreach (cs->selection, G_CALLBACK (each_reset_size), NULL);
   cs_dirtied ();
 }
 
@@ -254,7 +254,7 @@ void cs_select_none (ClutterActor *ignored)
   GString *redo = g_string_new ("CS.selected_clear();\n");
   g_string_append_printf (undo, "var list=[");
 
-  cs_selected_foreach (G_CALLBACK (each_add_to_list), undo);
+  cs_selection_foreach (cs->selection, G_CALLBACK (add_actor_to_js_list), undo);
   g_string_append_printf (undo, "];\n"
                           "for (x in list) CS.selected_add (list[x]);\n");
 
@@ -267,13 +267,13 @@ void cs_select_none (ClutterActor *ignored)
 void cs_select_all (ClutterActor *ignored)
 {
   GList *l, *list;
-SELECT_ACTION_PRE();
-  cs_selected_clear ();
+SELECT_ACTION_PRE(cs->selection);
+  cs_selection_clear (cs->selection);
   list = clutter_container_get_children (CLUTTER_CONTAINER (cs_get_current_container()));
   for (l=list; l;l=l->next)
-    cs_selected_add (l->data);
+    cs_selection_add (cs->selection, l->data);
   g_list_free (list);
-SELECT_ACTION_POST("select-all");
+SELECT_ACTION_POST(cs->selection, "select-all");
 }
 
 void cs_view_reset (ClutterActor *ignored)
@@ -388,7 +388,7 @@ static void each_ungroup (ClutterActor *actor,
           *created_list = g_list_append (*created_list, child);
         }
 
-      g_list_foreach(children, (void*)each_add_to_list, undo);
+      g_list_foreach(children, (void*)add_actor_to_js_list, undo);
       g_list_free (children);
       clutter_actor_destroy (actor);
       g_string_append_printf (undo, "];\n"
@@ -417,11 +417,11 @@ void cs_ungroup (ClutterActor *ignored)
   GList *i, *created_list = NULL;
   cs_history_start_group ("ungroup");
   cs_set_active (NULL);
-  cs_selected_foreach (G_CALLBACK (each_ungroup), &created_list);
-  cs_selected_clear (); 
+  cs_selection_foreach (cs->selection, G_CALLBACK (each_ungroup), &created_list);
+  cs_selection_clear (cs->selection); 
   for (i=created_list; i; i=i->next)
     {
-      cs_selected_add (i->data);
+      cs_selection_add (cs->selection, i->data);
     }
   g_list_free (created_list);
   cs_history_end_group ("ungroup");
@@ -430,7 +430,7 @@ void cs_ungroup (ClutterActor *ignored)
 
 void cs_make_group_box (ClutterActor *ignored)
 {
-  ClutterActor *active_actor = cs_selected_get_any ();
+  ClutterActor *active_actor = cs_selection_get_any (cs->selection);
   gboolean vertical = TRUE;
   if (!active_actor)
     return;
@@ -458,8 +458,8 @@ void cs_make_group_box (ClutterActor *ignored)
 
   active_actor = cs_actor_change_type (active_actor, "MxBoxLayout");
   g_object_set (G_OBJECT (active_actor), "vertical", vertical, NULL);
-  cs_selected_clear (); 
-  cs_selected_add (active_actor);
+  cs_selection_clear (cs->selection); 
+  cs_selection_add (cs->selection, active_actor);
   cs_dirtied ();
 }
 
@@ -471,19 +471,19 @@ void cs_make_box (ClutterActor *ignored)
 
 void cs_make_group (ClutterActor *ignored)
 {
-  ClutterActor *active_actor = cs_selected_get_any ();
+  ClutterActor *active_actor = cs_selection_get_any (cs->selection);
   if (!active_actor)
     return;
   
   active_actor = cs_actor_change_type (active_actor, "ClutterGroup");
-  cs_selected_clear (); 
-  cs_selected_add (active_actor);
+  cs_selection_clear (cs->selection); 
+  cs_selection_add (cs->selection, active_actor);
   cs_dirtied ();
 }
 
 void cs_select_parent (ClutterActor *ignored)
 {
-  ClutterActor *active_actor = cs_selected_get_any ();
+  ClutterActor *active_actor = cs_selection_get_any (cs->selection);
   if (active_actor)
     {
       ClutterActor *parent = clutter_actor_get_parent (active_actor);
@@ -493,8 +493,8 @@ void cs_select_parent (ClutterActor *ignored)
           gparent = clutter_actor_get_parent (parent);
           if (parent != cs->fake_stage)
             {
-              cs_selected_clear ();
-              cs_selected_add (parent);
+              cs_selection_clear (cs->selection);
+              cs_selection_add (cs->selection, parent);
               cs_set_current_container (gparent);
               clutter_actor_queue_redraw (active_actor);
             }
@@ -505,8 +505,8 @@ void cs_select_parent (ClutterActor *ignored)
       ClutterActor *parent = cs_get_current_container ();
       if (parent && parent != cs->fake_stage )
         {
-          cs_selected_clear ();
-          cs_selected_add (parent);
+          cs_selection_clear (cs->selection);
+          cs_selection_add (cs->selection, parent);
           parent = clutter_actor_get_parent (parent);
           cs_set_current_container (parent);
           clutter_actor_queue_redraw (active_actor);
@@ -523,16 +523,16 @@ cs_help (ClutterActor *ignored)
 static void select_nearest (gboolean vertical,
                             gboolean reverse)
 {
-  ClutterActor *actor = cs_selected_get_any ();
+  ClutterActor *actor = cs_selection_get_any (cs->selection);
   if (actor)
     {
       ClutterActor *new = cs_find_nearest (actor, vertical, reverse);
       if (new)
         {
-          SELECT_ACTION_PRE();
-          cs_selected_clear ();
-          cs_selected_add (new);
-          SELECT_ACTION_POST("cursor select");
+          SELECT_ACTION_PRE(cs->selection);
+          cs_selection_clear (cs->selection);
+          cs_selection_add (cs->selection, new);
+          SELECT_ACTION_POST(cs->selection, "cursor select");
         }
     }
   else
@@ -541,11 +541,11 @@ static void select_nearest (gboolean vertical,
                             CLUTTER_CONTAINER (cs_get_current_container ()));
       if (children)
         {
-          SELECT_ACTION_PRE();
-          cs_selected_clear ();
-          cs_selected_add (children->data);
+          SELECT_ACTION_PRE(cs->selection);
+          cs_selection_clear (cs->selection);
+          cs_selection_add (cs->selection, children->data);
           g_list_free (children);
-          SELECT_ACTION_POST("cursor select");
+          SELECT_ACTION_POST(cs->selection, "cursor select");
         }
     }
 }
@@ -1015,7 +1015,7 @@ static gboolean is_link (ClutterActor *actor)
 static void destination_set2 (MxAction *action,
                               gpointer    data)
 {
-  ClutterActor *actor = cs_selected_get_any ();
+  ClutterActor *actor = cs_selection_get_any (cs->selection);
   ClutterActor *text;
   gchar *value;
   value = g_strdup_printf ("link=%s", mx_action_get_name (action));
@@ -1058,7 +1058,7 @@ static MxAction *change_scene (const gchar *name)
 void new_scene (MxAction *action,
                 gpointer    ignored)
 {
-  ClutterActor *actor = cs_selected_get_any ();
+  ClutterActor *actor = cs_selection_get_any (cs->selection);
   ClutterActor *text;
   if (!is_link (actor))
     return;
@@ -1265,7 +1265,7 @@ static GList *actor_types_build (GList *list, GType type)
 static void change_type2 (ClutterActor *button,
                           const gchar  *name)
 {
-  ClutterActor *actor = cs_selected_get_any ();
+  ClutterActor *actor = cs_selection_get_any (cs->selection);
   cs_container_remove_children (cs->property_editors);
   if (!actor)
     {
@@ -1278,8 +1278,8 @@ static void change_type2 (ClutterActor *button,
       g_object_set (G_OBJECT (actor), "text", "New Text", NULL);
     }
 
-  cs_selected_clear ();
-  cs_selected_add (actor);
+  cs_selection_clear (cs->selection);
+  cs_selection_add (cs->selection, actor);
 }
 
 void cs_change_type (MxAction *action,

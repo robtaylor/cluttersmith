@@ -242,7 +242,7 @@ selection_to_position_commands (GString *string)
 {
   GList *s, *selected;
 
-  selected = cs_selected_get_list ();
+  selected = cs_selection_get_list (cs->selection);
   for (s = selected; s; s = s->next)
     {
       ClutterActor *actor = s->data;
@@ -270,11 +270,11 @@ manipulate_move_capture (ClutterActor *stage,
           delta[0]=manipulate_x-event->motion.x;
           delta[1]=manipulate_y-event->motion.y;
           {
-            if (cs_selected_count ()==1)
+            if (cs_selection_count (cs->selection)==1)
               {
                 /* we only snap when there is only one selected item */
 
-                GList *selected = cs_selected_get_list ();
+                GList *selected = cs_selection_get_list (cs->selection);
                 ClutterActor *actor = selected->data;
                 gfloat x, y;
                 g_assert (actor);
@@ -289,7 +289,7 @@ manipulate_move_capture (ClutterActor *stage,
               }
             else
               {
-                cs_selected_foreach (G_CALLBACK (each_move), &delta[0]);
+                cs_selection_foreach (cs->selection, G_CALLBACK (each_move), &delta[0]);
               }
           }
 
@@ -358,14 +358,14 @@ void cs_move_snap_paint (void)
         }
     }
 
-  if (cs_selected_count ()==0 && cs->lasso == NULL)
+  if (cs_selection_count (cs->selection)==0 && cs->selection->lasso == NULL)
     return;
 
-  if (cs_selected_count ()==1)
+  if (cs_selection_count (cs->selection)==1)
     {
       ClutterActor *actor;
       {
-        GList *l = cs_selected_get_list ();
+        GList *l = cs_selection_get_list (cs->selection);
         actor = l->data;
         g_list_free (l);
       }
@@ -431,7 +431,7 @@ void cs_move_snap_paint (void)
       }
     }
 
-  cs_selected_paint ();
+  cs_selection_paint (cs->selection);
   cs_animator_editor_stage_paint ();
 }
 
@@ -441,7 +441,7 @@ selection_to_depth_commands (GString *string)
 {
   GList *s, *selected;
 
-  selected = cs_selected_get_list ();
+  selected = cs_selection_get_list (cs->selection);
   for (s = selected; s; s = s->next)
     {
       ClutterActor *actor = s->data;
@@ -464,11 +464,11 @@ manipulate_depth_capture (ClutterActor *stage,
           delta[0]=manipulate_x-event->motion.x;
           delta[1]=manipulate_y-event->motion.y;
           {
-            if (cs_selected_count ()==1)
+            if (cs_selection_count (cs->selection)==1)
               {
                 /* we only snap when there is only one selected item */
 
-                GList *selected = cs_selected_get_list ();
+                GList *selected = cs_selection_get_list (cs->selection);
                 ClutterActor *actor = selected->data;
                 gfloat depth;
                 g_assert (actor);
@@ -481,7 +481,7 @@ manipulate_depth_capture (ClutterActor *stage,
             else
               {
 #if 0
-                cs_selected_foreach (G_CALLBACK (each_move), &delta[0]);
+                cs_selection_foreach (cs->selection, G_CALLBACK (each_move), &delta[0]);
 #endif
               }
           }

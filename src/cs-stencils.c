@@ -66,9 +66,9 @@ static gboolean add_stencil_real (gfloat       x,
       clutter_container_add_actor (CLUTTER_CONTAINER (parent), new_actor);
       clutter_actor_set_position (new_actor, x, y);
 
-      cs_selected_clear ();
+      cs_selection_clear (cs->selection);
       cs_actor_make_id_unique (new_actor, name);
-      cs_selected_add (new_actor);
+      cs_selection_add (cs->selection, new_actor);
 
       g_free (name);
     }

@@ -62,7 +62,7 @@ contains (gint min, gint max, gint minb, gint maxb)
 }
 
 /**
- * cs_selected_get_list:
+ * cs_selection_get_list:
  *
  * Return value: (element-type ClutterActor) (transfer container):
  */
@@ -75,7 +75,7 @@ static void update_active_actor (CSSelection *s)
 {
   if (g_list_length (s->selected)==1)
     {
-      cs_set_active (cs_selected_get_any (s));
+      cs_set_active (cs_selection_get_any (s));
     }
   else
     {
@@ -89,14 +89,14 @@ void cs_selection_add (CSSelection *s, ClutterActor *actor)
 {
   if (!g_list_find (s->selected, actor))
     s->selected = g_list_append (s->selected, actor);
-  update_active_actor ();
+  update_active_actor (s);
 }
 
-void cs_selected_remove (CSSelection *s, ClutterActor *actor)
+void cs_selection_remove (CSSelection *s, ClutterActor *actor)
 {
-  if (g_list_find (se, actor))
+  if (g_list_find (s->selected, actor))
     s->selected = g_list_remove (s->selected, actor);
-  update_active_actor ();
+  update_active_actor (s);
 }
 
 void cs_selection_foreach (CSSelection *s, GCallback cb, gpointer data)
@@ -124,7 +124,7 @@ void cs_selection_clear (CSSelection *s)
   if (s->selected)
     g_list_free (s->selected);
   s->selected = NULL;
-  update_active_actor ();
+  update_active_actor (s);
 }
 
 
@@ -161,14 +161,14 @@ struct LassoData
 	CSSelection *s;
 	GString *undo;
 	GString *redo;
-}
+};
 
 #define LASSO_BORDER 1
 
 static gboolean
 manipulate_lasso_capture (ClutterActor *stage,
                           ClutterEvent *event,
-                          LassoData *data)
+                          struct LassoData *data)
 {
   CSSelection *s = data->s;
 
@@ -179,16 +179,16 @@ manipulate_lasso_capture (ClutterActor *stage,
           gfloat ex=event->motion.x;
           gfloat ey=event->motion.y;
 
-          gint mx = MIN (ex, lx);
-          gint my = MIN (ey, ly);
-          gint mw = MAX (ex, lx) - mx;
-          gint mh = MAX (ey, ly) - my;
+          gint mx = MIN (ex, s->lx);
+          gint my = MIN (ey, s->ly);
+          gint mw = MAX (ex, s->lx) - mx;
+          gint mh = MAX (ey, s->ly) - my;
 
           clutter_actor_set_position (s->lasso, mx - LASSO_BORDER, my - LASSO_BORDER);
           clutter_actor_set_size (s->lasso, mw + LASSO_BORDER*2, mh+LASSO_BORDER*2);
 
-          manipulate_x=ex;
-          manipulate_y=ey;
+          s->manipulate_x=ex;
+          s->manipulate_y=ey;
 
           {
             gint no;
@@ -206,7 +206,7 @@ manipulate_lasso_capture (ClutterActor *stage,
                 if (contains (mx, mx + mw, cx, cx + cw) &&
                     contains (my, my + mh, cy, cy + ch))
                   {
-                    g_hash_table_insert (selection, j->data, j->data);
+                    g_hash_table_insert (s->lassoed, j->data, j->data);
                   }
               }
             g_list_free (list);
@@ -241,8 +241,8 @@ manipulate_lasso_capture (ClutterActor *stage,
         clutter_actor_destroy (s->lasso);
         clutter_actor_queue_redraw (stage);
         s->lasso = NULL;
-        select_action_post("select lasso", data->undo, data->redo);
-	g_slice_free(LassoData, data);
+        cs_select_area_action_post(s, "select lasso", data->undo, data->redo);
+	g_slice_free(struct LassoData, data);
       default:
         break;
     }
@@ -270,20 +270,20 @@ cs_selection_lasso_start (CSSelection *s ,
   s->lx = event->button.x;
   s->ly = event->button.y;
 
-  clutter_actor_set_position (lasso, lx-LASSO_BORDER, ly-LASSO_BORDER);
-  clutter_actor_set_size (lasso, LASSO_BORDER*2, LASSO_BORDER*2);
+  clutter_actor_set_position (s->lasso, s->lx-LASSO_BORDER, s->ly-LASSO_BORDER);
+  clutter_actor_set_size (s->lasso, LASSO_BORDER*2, LASSO_BORDER*2);
 
-  manipulate_x = event->button.x;
-  manipulate_y = event->button.y;
+  s->manipulate_x = event->button.x;
+  s->manipulate_y = event->button.y;
 
-  LassoData *ld = g_slice_new0(LassoData);
+  struct LassoData *ld = g_slice_new0(struct LassoData);
   ld->s = s;
   ld->undo = g_string_new("");
   ld->redo = g_string_new("");
 
   g_signal_connect (clutter_actor_get_stage (actor), "captured-event",
                     G_CALLBACK (manipulate_lasso_capture), ld);
-  select_action_pre2(ld->undo);
+  cs_select_area_action_pre2(s, ld->undo);
 
   if (!((state & CLUTTER_SHIFT_MASK) ||
         (state & CLUTTER_CONTROL_MASK)))
@@ -313,7 +313,7 @@ void cs_selection_paint (CSSelection *s)
   }
 
   cogl_set_source_color4ub (255, 0, 0, 128);
-  cs_selection_foreach (G_CALLBACK (cs_draw_actor_outline), NULL);
+  cs_selection_foreach (s, G_CALLBACK (cs_draw_actor_outline), NULL);
 
   g_hash_table_iter_init (&iter, s->lassoed);
   while (g_hash_table_iter_next (&iter, &key, &value))
@@ -340,24 +340,19 @@ void cs_selection_paint (CSSelection *s)
 }
 
 
-static void each_add_to_list (ClutterActor *actor, gpointer      string)
-{
-  g_string_append_printf (string, "$(\"%s\"),", cs_get_id (actor));
-}
-
-
 void cs_select_area_action_pre2(CSSelection *s, GString *undo)
 {
   g_string_append_printf (undo, "var list=[");
-  cs_selection_foreach (s, G_CALLBACK (each_add_to_list), undo);
+  cs_selection_foreach (s, G_CALLBACK (add_actor_to_js_list), undo);
   g_string_append_printf (undo, "];\n"
                           "CS.selection_clear();\n"
                           "for (x in list) CS.selection_add (list[x]);\n");
 }
 
-void cs_select_action_post(CSSelection *s, const char *action_name, GString *undo, GString *redo) 
+void cs_select_area_action_post(CSSelection *s, const char *action_name, GString *undo, GString *redo) 
+{
   g_string_append_printf (redo, "var list=[");
-  cs_selection_foreach (s, G_CALLBACK (each_add_to_list), redo);
+  cs_selection_foreach (s, G_CALLBACK (add_actor_to_js_list), redo);
   g_string_append_printf (redo, "];\n"
                           "CS.selection_clear();\n"
                           "for (x in list) CS.selection_add (list[x]);\n");
@@ -365,6 +360,16 @@ void cs_select_action_post(CSSelection *s, const char *action_name, GString *und
     cs_history_add (action_name, redo->str, undo->str);
   g_string_free (undo, TRUE);
   g_string_free (redo, TRUE);
+}
+
+
+ClutterActor *
+cs_selection_pick (CSSelection *s,
+                   gfloat x,
+                   gfloat y)
+{
+  gfloat data[2]={x,y}; 
+  return cs_selection_match (s, G_CALLBACK (is_in_actor), data);
 }
 
 
