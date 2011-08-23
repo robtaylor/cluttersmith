@@ -866,7 +866,7 @@ gboolean manipulator_key_pressed (ClutterActor *stage, ClutterModifierType modif
 }
 
 
-static KeyBinding global_keybindings[]={
+static const KeyBinding global_keybindings[] = {
   {CLUTTER_CONTROL_MASK, CLUTTER_q,           cs_quit},
   {0,                    CLUTTER_Scroll_Lock, cs_ui_mode},
 
