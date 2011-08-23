@@ -82,6 +82,7 @@ struct _CSContext
   GList        *animators;
   GList        *state_machines;
   gchar        *project_root;
+  gchar        *filename;
 
   ClutterActor  *current_container;
 

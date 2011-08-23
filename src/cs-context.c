@@ -577,9 +577,6 @@ cs_context_set_property (GObject      *object,
     }
 }
 
-/* XXX: evil global */
-static gchar *filename = NULL;
-
 const gchar *cs_context_get_scene (CSContext *context)
 {
   return context->priv->title;
@@ -601,9 +598,9 @@ void cs_context_set_scene (CSContext   *context,
     g_free (context->priv->title);
 
   context->priv->title = g_strdup (new_title);
-  if (filename)
-    g_free (filename);
-  filename = g_strdup_printf ("%s/%s.json", cs_get_project_root(),
+  if (cs->filename)
+    g_free (cs->filename);
+  cs->filename = g_strdup_printf ("%s/%s.json", cs_get_project_root(),
                               new_title);
 
   if (!(context->ui_mode & CS_UI_MODE_EDIT))
@@ -1671,9 +1668,9 @@ void cs_save (gboolean force)
   return;
 #endif
 
-  if (filename)
+  if (cs->filename)
     {
-      GFile *gf = g_file_new_for_path (filename);
+      GFile *gf = g_file_new_for_path (cs->filename);
       GFile *gf_parent;
 
       gf_parent = g_file_get_parent (gf);
@@ -1687,12 +1684,12 @@ void cs_save (gboolean force)
     {
       gchar *str;
 
-      g_print ("Auto saving %s\n", filename);
+      g_print ("Auto saving %s\n", cs->filename);
       str = cs_serialize ();
 
-      if (filename)
+      if (cs->filename)
         {
-          g_file_set_contents (filename, str, -1, NULL);
+          g_file_set_contents (cs->filename, str, -1, NULL);
         }
       g_free (str);
       CS_STORED_REVISION = CS_REVISION;
@@ -1957,16 +1954,18 @@ void cs_post_load (void)
   g_list_free (objects);
 }
 
-/* filename has already been set when cs_load is called */
 static void cs_load (void)
 {
+  /* filename must have been  already been set when cs_load is called */
+  g_assert (cs->filename);
+
   cs_container_remove_children (cs->property_editors);
   remove_state_machines ();
   cs_container_remove_children (cs->scene_graph);
   cs_container_remove_children (cs->fake_stage);
 
 
-  if (g_file_test (filename, G_FILE_TEST_IS_REGULAR))
+  if (g_file_test (cs->filename, G_FILE_TEST_IS_REGULAR))
     {
       gchar *scriptfilename;
       gchar *prescriptfilename;
@@ -1999,7 +1998,7 @@ static void cs_load (void)
         }
 
       cs->fake_stage = NULL; /* forcing cs->fake_stage to NULL */
-      cs->fake_stage = cs_replace_content (cs->parasite_root, "fake-stage", filename, NULL);
+      cs->fake_stage = cs_replace_content (cs->parasite_root, "fake-stage", cs->filename, NULL);
       cs_post_load ();
 
       if (g_file_test (annotationfilename, G_FILE_TEST_IS_REGULAR))
@@ -2169,9 +2168,9 @@ void cluttersmith_set_project_root (const gchar *new_root)
   if ((project_root = cs_find_by_id_int (clutter_actor_get_stage (cs->parasite_root), "project-root")))
     g_object_set (G_OBJECT (project_root), "text", new_root, NULL);
 
-  if (filename)
-    g_free (filename);
-  filename = g_strdup_printf ("%s/%s.json", cs_get_project_root(),
+  if (cs->filename)
+    g_free (cs->filename);
+  cs->filename = g_strdup_printf ("%s/%s.json", cs_get_project_root(),
                               "index");
   scenes_combo_box_update ();
 }
