@@ -43,11 +43,21 @@
 #include <string.h>
 #include "cluttersmith.h"
 
-void cs_selection_init (CSSelection *s)
+
+CSSelection *cs_selection_new ()
 {
+  CSSelection *s = g_slice_new0 (CSSelection);
   s->lassoed = g_hash_table_new_full (g_direct_hash, g_direct_equal, NULL, NULL);
+  return s;
 }
 
+void cs_selection_free (CSSelection *s)
+{
+  /*XXX needs sanity checking */
+  g_list_free(s->selected);
+  g_hash_table_destroy (s->lassoed);
+  g_slice_free(CSSelection, s); 
+}
 
 /* XXX: should be changed to deal with transformed coordinates to be able to
  * deal correctly with actors at any transformation and nesting.

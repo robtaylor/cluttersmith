@@ -100,7 +100,8 @@ static void
 cs_context_finalize (GObject *object)
 {
   CSContext *context = (CSContext*) object;
-  g_slice_free(CSSelection, context->selection); /*TODO, real free fn*/ 
+  cs_selection_free(context->selection);
+  context->selection = NULL;
   G_OBJECT_CLASS (cs_context_parent_class)->finalize (object);
 }
 
@@ -148,7 +149,7 @@ static void
 cs_context_init (CSContext *self)
 {
   self->priv = CONTEXT_PRIVATE (self);
-  self->selection = g_slice_new0(CSSelection);
+  self->selection = cs_selection_new();
 }
 
 CSContext *
