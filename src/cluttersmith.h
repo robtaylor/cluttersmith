@@ -166,7 +166,6 @@ void cs_user_install (void);
 
 #define SNAP_THRESHOLD  2
 
-extern gint cs_set_keys_freeze; /* XXX: global! */
 gchar *cs_json_escape_string (const gchar *in);
 
 void cs_callbacks_populate (ClutterActor *actor);

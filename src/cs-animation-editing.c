@@ -1441,13 +1441,13 @@ void state_position_actors (gdouble progress)
   clutter_timeline_start (timeline);
   clutter_timeline_pause (timeline);
 
-  cs_set_keys_freeze ++;
+  cs->set_keys_freeze ++;
     {
       gint frame = clutter_timeline_get_duration (timeline) * progress;
       clutter_timeline_advance (timeline, frame);
       g_signal_emit_by_name (timeline, "new-frame", frame, NULL);
     }
-  cs_set_keys_freeze --;
+  cs->set_keys_freeze --;
 }
 
 

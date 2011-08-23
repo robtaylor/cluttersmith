@@ -50,8 +50,6 @@ G_DEFINE_TYPE (CSContext, cs_context, G_TYPE_OBJECT)
 #define CONTEXT_PRIVATE(o) \
       (G_TYPE_INSTANCE_GET_PRIVATE ((o), CS_TYPE_CONTEXT, CSContextPrivate))
 
-gint cs_set_keys_freeze = 0; /* XXX: global! */
-
 enum
 {
   PROP_0,
@@ -1752,7 +1750,7 @@ void cs_prop_tweaked (GObject     *object,
        
        progress = cs_animator_editor_get_progress (CS_ANIMATOR_EDITOR (cs->animator_editor));
 
-       if (cs_set_keys_freeze == 0)
+       if (cs->set_keys_freeze == 0)
          clutter_animator_set_key (cs->current_animator,
                                    object,
                                    property_name,
@@ -1782,7 +1780,7 @@ void cs_prop_tweaked (GObject     *object,
        if (source_state && g_str_equal (source_state, ""))
          source_state = NULL;
 
-       if (cs_set_keys_freeze == 0)
+       if (cs->set_keys_freeze == 0)
         {
           GList *states, *s;
 
