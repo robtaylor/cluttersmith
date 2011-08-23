@@ -968,7 +968,6 @@ void cluttersmith_init (void)
 
 
   cs->parasite_root = CLUTTER_ACTOR (clutter_script_get_object (script, "parasite-root"));
-  /* initializing globals */
 
   /* this is the main initialization */
   g_signal_connect (stage, "captured-event", G_CALLBACK (runtime_capture), NULL);
